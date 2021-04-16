@@ -1,3 +1,7 @@
+# data
+*.cr
+*.ber
+
 .vscode/
 *.orig
 eressea.ini

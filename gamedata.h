@@ -20,12 +20,12 @@ typedef struct stringtable {
 } stringtable;
 
 typedef struct crblock {
-	long keys[3];
+	int keys[3];
 	enum crblock_t type;
 } crblock;
 
-typedef struct crdata {
+typedef struct gamedata {
 	stringtable strings;
 	crblock *data; /* stb array */
-} crdata;
+} gamedata;
 
