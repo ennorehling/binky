@@ -57,13 +57,34 @@ static attribute *attr_add(parser_context *ctx, const char *name, enum value_t t
     return NULL;
 }
 
+static enum CR_Error handle_text(void *udata, const char *text) {
+    parser_context *ctx = (parser_context *)udata;
+    char *value = stb_p_strdup(text);
+
+    if (value) {
+        crblock *block = ctx->block;
+        char **ins = stbds_arraddnptr(block->data.strings, 1);
+
+        block->type = CRSTRINGS;
+        *ins = value;
+        return CR_ERROR_NONE;
+    }
+    return CR_ERROR_NO_MEMORY;
+}
+
 static enum CR_Error handle_number(void *udata, const char *name, long value)
 {
     parser_context *ctx = (parser_context *)udata;
 
     if (ctx->block) {
         crblock *block = ctx->block;
-        attribute *attr = attr_add(ctx, name, VALUE_NUMBER);
+        attribute *attr;
+
+        if (block->type != CROBJECT) {
+            return CR_ERROR_SYNTAX;
+        }
+
+        attr = attr_add(ctx, name, VALUE_NUMBER);
         if (!attr) {
             return CR_ERROR_NO_MEMORY;
         }
@@ -82,6 +103,10 @@ static enum CR_Error handle_location(void *udata, const char *name, const char *
         attribute *attr;
         short x = 0, y = 0, z = 0;
         int n;
+
+        if (block->type != CROBJECT) {
+            return CR_ERROR_SYNTAX;
+        }
 
         n = sscanf(value, "%hd %hd %hd", &x, &y, &z);
         if (n < 2) {
@@ -111,7 +136,13 @@ static enum CR_Error handle_property(void *udata, const char *name, const char *
 
     if (ctx->block) {
         crblock *block = ctx->block;
-        attribute *attr = attr_add(ctx, name, VALUE_STRING);
+        attribute *attr;
+
+        if (block->type != CROBJECT) {
+            return CR_ERROR_SYNTAX;
+        }
+
+        attr = attr_add(ctx, name, VALUE_STRING);
         if (!attr) {
             return CR_ERROR_NO_MEMORY;
         }
@@ -136,6 +167,7 @@ int crfile_import(gamedata *gd, const char *filename)
     CR_SetElementHandler(cp, handle_element);
     CR_SetPropertyHandler(cp, handle_property);
     CR_SetNumberHandler(cp, handle_number);
+    CR_SetTextHandler(cp, handle_text);
     CR_SetLocationHandler(cp, handle_location);
     ctx.gd = gd;
     CR_SetUserData(cp, (void *)&ctx);
@@ -184,11 +216,18 @@ int crfile_export(gamedata *gd, const char *filename)
             fprintf(F, " %d", block->keys[k]);
         }
         fputc('\n', F);
-        if (block->type == CROBJECT) {
+        if (block->type == CRSTRINGS) {
+            size_t len = stbds_arrlenu(block->data.strings);
+            for (k = 0; k != len; ++k) {
+                char *str = block->data.strings[k];
+                fprintf(F, "\"%s\"\n", str);
+            }
+        }
+        else if (block->type == CROBJECT) {
             size_t len = stbds_arrlenu(block->data.attributes);
             unsigned int a;
             for (a = 0; a != len; ++a) {
-                attribute *attr = block->data.attributes+a;
+                attribute *attr = block->data.attributes + a;
                 const char *key = strings_get(&gd->strings, attr->ikey);
                 if (attr->type == VALUE_STRING) {
                     const char *val = attr->value.string;

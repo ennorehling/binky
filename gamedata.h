@@ -1,10 +1,5 @@
 #pragma once
 
-typedef enum crblock_t {
-	CROBJECT,
-	CRSTRINGS,
-} crblock_t;
-
 typedef struct string_index {
     char *key;
     int value;
@@ -34,13 +29,19 @@ typedef struct attribute {
     } value;
 } attribute;
 
+typedef enum crblock_t {
+    CROBJECT,
+    CRSTRINGS,
+} crblock_t;
+
 typedef struct crblock {
     unsigned int nkeys;
     int keys[3];
     int iname;
 	enum crblock_t type;
     union {
-        attribute *attributes; /* stbds_arr array */
+        attribute *attributes; /* CROBJECT, stbds_arr array */
+        char **strings; /* CRSTRINGS, stbds_arr array */
     } data;
 } crblock;
 
