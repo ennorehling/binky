@@ -15,15 +15,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct parser_context {
+typedef struct import_context {
     gamedata *gd;
     crblock *block;
-} parser_context;
+} import_context;
 
 static enum CR_Error handle_element(void *udata, const char *name,
     unsigned int keyc, int keyv[])
 {
-    parser_context *ctx = (parser_context *)udata;
+    import_context *ctx = (import_context *)udata;
     crblock *block;
     stringtable *st = &ctx->gd->strings;
 
@@ -45,7 +45,7 @@ static enum CR_Error handle_element(void *udata, const char *name,
     return CR_ERROR_NO_MEMORY;
 }
 
-static attribute *attr_add(parser_context *ctx, const char *name, enum value_t type)
+static attribute *attr_add(import_context *ctx, const char *name, enum value_t type)
 {
     stringtable *st = &ctx->gd->strings;
     int index = strings_put(st, name);
@@ -62,7 +62,7 @@ static attribute *attr_add(parser_context *ctx, const char *name, enum value_t t
 }
 
 static enum CR_Error handle_text(void *udata, const char *text) {
-    parser_context *ctx = (parser_context *)udata;
+    import_context *ctx = (import_context *)udata;
     char *value = stb_p_strdup(text);
 
     if (value) {
@@ -78,7 +78,7 @@ static enum CR_Error handle_text(void *udata, const char *text) {
 
 static enum CR_Error handle_number(void *udata, const char *name, long value)
 {
-    parser_context *ctx = (parser_context *)udata;
+    import_context *ctx = (import_context *)udata;
 
     if (ctx->block) {
         crblock *block = ctx->block;
@@ -100,7 +100,7 @@ static enum CR_Error handle_number(void *udata, const char *name, long value)
 
 static enum CR_Error handle_location(void *udata, const char *name, const char *value)
 {
-    parser_context *ctx = (parser_context *)udata;
+    import_context *ctx = (import_context *)udata;
 
     if (ctx->block) {
         crblock *block = ctx->block;
@@ -131,7 +131,7 @@ static enum CR_Error handle_location(void *udata, const char *name, const char *
 
 static enum CR_Error handle_property(void *udata, const char *name, const char *value)
 {
-    parser_context *ctx = (parser_context *)udata;
+    import_context *ctx = (import_context *)udata;
     
     char *string = stb_p_strdup(value);
     if (!string) {
@@ -159,56 +159,21 @@ static enum CR_Error handle_property(void *udata, const char *name, const char *
 int crfile_import(gamedata *gd, const char *filename)
 {
     CR_Parser cp;
-    parser_context ctx;
-    FILE *F = fopen(filename, "rt");
-    unsigned char buf[2048];
-    int done = 0, err = 0;
-    size_t len;
-    const char *line = (const char *)buf;
+    int err;
+    import_context ctx;
 
-    if (F == NULL) {
-        return EINVAL;
-    }
-
-    len = fread(buf, 1, sizeof(buf), F);
-    if (len >= 3 && buf[0] == 0xef) {
-        /* skip BOM */
-        len -= 3;
-        line += 3;
-        printf("BOM found\n");
-    }
+    ctx.gd = gd;
     cp = CR_ParserCreate();
     CR_SetLocationHandler(cp, handle_location);
     CR_SetNumberHandler(cp, handle_number);
     CR_SetPropertyHandler(cp, handle_property);
     CR_SetTextHandler(cp, handle_text);
     CR_SetElementHandler(cp, handle_element);
-    ctx.gd = gd;
     CR_SetUserData(cp, (void *)&ctx);
 
-    while (!done) {
-        if (ferror(F)) {
-            fprintf(stderr,
-                "read error at line %d of %s: %s\n",
-                CR_GetCurrentLineNumber(cp),
-                filename, strerror(errno));
-            err = errno;
-            break;
-        }
-        done = feof(F);
-        if (CR_Parse(cp, line, len, done) == CR_STATUS_ERROR) {
-            fprintf(stderr,
-                "parse error at line %d of %s: %s\n",
-                CR_GetCurrentLineNumber(cp),
-                filename, CR_ErrorString(CR_GetErrorCode(cp)));
-            err = -1;
-            break;
-        }
-        len = fread(buf, 1, sizeof(buf), F);
-        line = (const char *)buf;
-    }
+    err = CR_ReadFile(cp, filename);
+
     CR_ParserFree(cp);
-    fclose(F);
     return err;
 }
 
