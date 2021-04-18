@@ -157,11 +157,21 @@ int crfile_import(gamedata *gd, const char *filename)
     CR_Parser cp;
     parser_context ctx;
     FILE *F = fopen(filename, "rt");
-    char buf[2048];
+    unsigned char buf[2048];
     int done = 0, err = 0;
+    size_t len;
+    const char *line = (const char *)buf;
 
     if (F == NULL) {
         return EINVAL;
+    }
+
+    len = fread(buf, 1, sizeof(buf), F);
+    if (len >= 3 && buf[0] == 0xef) {
+        /* skip BOM */
+        len -= 3;
+        line += 3;
+        printf("BOM found\n");
     }
     cp = CR_ParserCreate();
     CR_SetElementHandler(cp, handle_element);
@@ -173,7 +183,6 @@ int crfile_import(gamedata *gd, const char *filename)
     CR_SetUserData(cp, (void *)&ctx);
 
     while (!done) {
-        size_t len = fread(buf, 1, sizeof(buf), F);
         if (ferror(F)) {
             fprintf(stderr,
                 "read error at line %d of %s: %s\n",
@@ -183,7 +192,7 @@ int crfile_import(gamedata *gd, const char *filename)
             break;
         }
         done = feof(F);
-        if (CR_Parse(cp, buf, len, done) == CR_STATUS_ERROR) {
+        if (CR_Parse(cp, line, len, done) == CR_STATUS_ERROR) {
             fprintf(stderr,
                 "parse error at line %d of %s: %s\n",
                 CR_GetCurrentLineNumber(cp),
@@ -191,6 +200,8 @@ int crfile_import(gamedata *gd, const char *filename)
             err = -1;
             break;
         }
+        len = fread(buf, 1, sizeof(buf), F);
+        line = (const char *)buf;
     }
     CR_ParserFree(cp);
     fclose(F);
