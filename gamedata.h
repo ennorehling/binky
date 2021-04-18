@@ -23,7 +23,7 @@ typedef struct attribute {
     enum value_t type;
     const char *key;
     union {
-        long number;
+        int number;
         char *string;
         short location[3];
     } value;
