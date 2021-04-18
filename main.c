@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 
     infile = argv[1];
     err = crfile_import(&gd, infile);
-    game_dump(&gd);
+    // game_dump(&gd);
     if (err > 0) {
         perror(infile);
     }

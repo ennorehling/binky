@@ -11,6 +11,7 @@
 #include "stb/stb_ds.h"
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,12 +21,40 @@ typedef struct import_context {
     crblock *block;
 } import_context;
 
+static bool ignored_block(const char *name) {
+    /* sorted (!) array of ignored blocks: */
+    const char *names[] = {
+        "MESSAGETYPE",
+        "TRANSLATION",
+        NULL
+    };
+    int i;
+
+    /* FIXME: linear search is slow */
+    for (i = 0; names[i]; ++i) {
+        int d = strcmp(names[i], name);
+        if (d == 0) {
+            return true;
+        }
+        else if (d > 0) {
+            break;
+        }
+    }
+    return false;
+}
+
 static enum CR_Error handle_element(void *udata, const char *name,
     unsigned int keyc, int keyv[])
 {
     import_context *ctx = (import_context *)udata;
     crblock *block;
     stringtable *st = &ctx->gd->strings;
+
+    if (ignored_block(name)) {
+        /* ignore these blocks */
+        ctx->block = NULL;
+        return CR_ERROR_NONE;
+    }
 
     block = malloc(sizeof(crblock));
     if (block) {
@@ -63,17 +92,21 @@ static attribute *attr_add(import_context *ctx, const char *name, enum value_t t
 
 static enum CR_Error handle_text(void *udata, const char *text) {
     import_context *ctx = (import_context *)udata;
-    char *value = stb_p_strdup(text);
+    crblock *block = ctx->block;
 
-    if (value) {
-        crblock *block = ctx->block;
-        char **ins = stbds_arraddnptr(block->data.strings, 1);
+    if (block) {
+        char *value = stb_p_strdup(text);
 
-        block->type = CRSTRINGS;
-        *ins = value;
-        return CR_ERROR_NONE;
+        if (value) {
+            char **ins = stbds_arraddnptr(block->data.strings, 1);
+
+            block->type = CRSTRINGS;
+            *ins = value;
+            return CR_ERROR_NONE;
+        }
+        return CR_ERROR_NO_MEMORY;
     }
-    return CR_ERROR_NO_MEMORY;
+    return CR_ERROR_NONE;
 }
 
 static enum CR_Error handle_number(void *udata, const char *name, long value)
@@ -93,9 +126,8 @@ static enum CR_Error handle_number(void *udata, const char *name, long value)
             return CR_ERROR_NO_MEMORY;
         }
         attr->value.number = value;
-        return CR_ERROR_NONE;
     }
-    return CR_ERROR_GRAMMAR;
+    return CR_ERROR_NONE;
 }
 
 static enum CR_Error handle_location(void *udata, const char *name, const char *value)
@@ -124,9 +156,8 @@ static enum CR_Error handle_location(void *udata, const char *name, const char *
         attr->value.location[0] = x;
         attr->value.location[1] = y;
         attr->value.location[2] = z;
-        return CR_ERROR_NONE;
     }
-    return CR_ERROR_GRAMMAR;
+    return CR_ERROR_NONE;
 }
 
 static enum CR_Error handle_property(void *udata, const char *name, const char *value)
@@ -151,9 +182,8 @@ static enum CR_Error handle_property(void *udata, const char *name, const char *
             return CR_ERROR_NO_MEMORY;
         }
         attr->value.string = string;
-        return CR_ERROR_NONE;
     }
-    return CR_ERROR_GRAMMAR;
+    return CR_ERROR_NONE;
 }
 
 int crfile_import(gamedata *gd, const char *filename)
