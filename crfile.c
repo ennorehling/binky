@@ -25,15 +25,18 @@ static enum CR_Error handle_element(void *udata, const char *name,
 {
     parser_context *ctx = (parser_context *)udata;
     crblock *block;
+    stringtable *st = &ctx->gd->strings;
 
     block = malloc(sizeof(crblock));
     if (block) {
         crblock **block_p = stbds_arraddnptr(ctx->gd->blocks, 1);
-        ctx->block = *block_p = block;
-        block->iname = strings_put(&ctx->gd->strings, name);
+        int i;
+        i = strings_put(st, name);
+        block->name = strings_get(st, i);
         block->type = CROBJECT;
         block->nkeys = keyc;
         block->data.attributes = NULL;
+        ctx->block = *block_p = block;
         if (keyc > 0) {
             memcpy(block->keys, keyv, sizeof(keyv[0]) * keyc);
         }
@@ -44,13 +47,14 @@ static enum CR_Error handle_element(void *udata, const char *name,
 
 static attribute *attr_add(parser_context *ctx, const char *name, enum value_t type)
 {
-    int index = strings_put(&ctx->gd->strings, name);
+    stringtable *st = &ctx->gd->strings;
+    int index = strings_put(st, name);
     if (index >= 0) {
         crblock *block = ctx->block;
         attribute *attr = stbds_arraddnptr(block->data.attributes, 1);
         if (attr) {
             attr->type = type;
-            attr->ikey = index;
+            attr->key = strings_get(st, index);
         }
         return attr;
     }
@@ -174,11 +178,11 @@ int crfile_import(gamedata *gd, const char *filename)
         printf("BOM found\n");
     }
     cp = CR_ParserCreate();
-    CR_SetElementHandler(cp, handle_element);
-    CR_SetPropertyHandler(cp, handle_property);
-    CR_SetNumberHandler(cp, handle_number);
-    CR_SetTextHandler(cp, handle_text);
     CR_SetLocationHandler(cp, handle_location);
+    CR_SetNumberHandler(cp, handle_number);
+    CR_SetPropertyHandler(cp, handle_property);
+    CR_SetTextHandler(cp, handle_text);
+    CR_SetElementHandler(cp, handle_element);
     ctx.gd = gd;
     CR_SetUserData(cp, (void *)&ctx);
 
@@ -222,7 +226,7 @@ int crfile_export(gamedata *gd, const char *filename)
     for (i = 0; i != nblocks; ++i) {
         unsigned int k;
         crblock *block = gd->blocks[i];
-        fprintf(F, "%s", block_name(gd, block));
+        fprintf(F, "%s", block->name);
         for (k = 0; k != block->nkeys; ++k) {
             fprintf(F, " %d", block->keys[k]);
         }
@@ -239,7 +243,7 @@ int crfile_export(gamedata *gd, const char *filename)
             unsigned int a;
             for (a = 0; a != len; ++a) {
                 attribute *attr = block->data.attributes + a;
-                const char *key = strings_get(&gd->strings, attr->ikey);
+                const char *key = attr->key;
                 if (attr->type == VALUE_STRING) {
                     const char *val = attr->value.string;
                     fprintf(F, "\"%s\";%s\n", val, key);

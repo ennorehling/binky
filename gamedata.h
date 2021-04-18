@@ -21,7 +21,7 @@ enum value_t {
 
 typedef struct attribute {
     enum value_t type;
-    int ikey;
+    const char *key;
     union {
         long number;
         char *string;
@@ -37,7 +37,7 @@ typedef enum crblock_t {
 typedef struct crblock {
     unsigned int nkeys;
     int keys[3];
-    int iname;
+    const char *name;
 	enum crblock_t type;
     union {
         attribute *attributes; /* CROBJECT, stbds_arr array */
@@ -49,5 +49,3 @@ typedef struct gamedata {
 	stringtable strings;
 	crblock **blocks; /* stbds_arr array */
 } gamedata;
-
-const char *block_name(gamedata *gd, crblock *block);

@@ -35,8 +35,3 @@ const char *strings_get(const struct stringtable *st, int index)
     assert(index >=0 && index < stbds_arrlen(st->strings));
     return st->strings[index];
 }
-
-const char *block_name(gamedata *gd, crblock *block)
-{
-    return strings_get(&gd->strings, block->iname);
-}
