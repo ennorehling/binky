@@ -6,12 +6,13 @@ typedef struct string_index {
 } string_index;
 
 typedef struct stringtable {
-    string_index *index; /* stbds_sh map */
-	char **strings; /* stbds_arr array */
+    string_index *map; /* stbds_sh map */
 } stringtable;
 
 int strings_put(struct stringtable *st, const char *str);
-const char *strings_get(const struct stringtable *st, int index);
+const char *strings_get(struct stringtable *st, int index);
+const char *strings_find(struct stringtable *st, const char *str);
+void strings_free(struct stringtable *st);
 
 enum value_t {
     VALUE_STRING,
@@ -46,6 +47,9 @@ typedef struct crblock {
 } crblock;
 
 typedef struct gamedata {
-	stringtable strings;
-	crblock **blocks; /* stbds_arr array */
+	struct stringtable *strings;
+    struct crblock **blocks; /* stbds_arr array */
 } gamedata;
+
+int gamedata_turn(struct gamedata *gd);
+void gamedata_free(struct gamedata *gd);

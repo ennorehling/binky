@@ -8,6 +8,7 @@
 
 typedef struct merge_context {
     gamedata *gd;
+    int turn;
     crblock *block;
 } merge_context;
 
@@ -44,6 +45,7 @@ int crfile_merge(gamedata *gd, const char *filename)
     int err;
 
     ctx.gd = gd;
+    ctx.turn = gamedata_turn(gd);
     cp = CR_ParserCreate();
     CR_SetLocationHandler(cp, handle_location);
     CR_SetNumberHandler(cp, handle_number);

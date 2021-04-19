@@ -48,7 +48,7 @@ static enum CR_Error handle_element(void *udata, const char *name,
 {
     import_context *ctx = (import_context *)udata;
     crblock *block;
-    stringtable *st = &ctx->gd->strings;
+    stringtable *st = ctx->gd->strings;
 
     if (ignored_block(name)) {
         /* ignore these blocks */
@@ -76,7 +76,7 @@ static enum CR_Error handle_element(void *udata, const char *name,
 
 static attribute *attr_add(import_context *ctx, const char *name, enum value_t type)
 {
-    stringtable *st = &ctx->gd->strings;
+    stringtable *st = ctx->gd->strings;
     int index = strings_put(st, name);
     if (index >= 0) {
         crblock *block = ctx->block;

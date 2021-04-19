@@ -9,19 +9,20 @@
 
 #include <stdio.h>
 
-void game_dump(const gamedata *gd)
+static void game_dump(gamedata *gd)
 {
-    size_t len = stbds_arrlenu(gd->strings.strings);
+    size_t len = stbds_shlenu(gd->strings->map);
     int i;
     for (i = 0; i != len; ++i) {
-        const char *str = strings_get(&gd->strings, i);
+        const char *str = strings_get(gd->strings, i);
         puts(str);
     }
     printf("%zu strings\n", len);
 }
 
 int main(int argc, char *argv[]) {
-    gamedata gd = { 0 };
+    stringtable st = { 0 };
+    gamedata gd = { &st, NULL };
     const char *infile, *outfile;
     int err;
 
@@ -29,15 +30,22 @@ int main(int argc, char *argv[]) {
 
     infile = argv[1];
     err = crfile_import(&gd, infile);
-    // game_dump(&gd);
     if (err > 0) {
         perror(infile);
     }
     if (err != 0) {
-        return err;
+        goto error_exit;
     }
+    game_dump(&gd);
     if (argc < 3) return 0;
 
     outfile = argv[2];
-    return crfile_export(&gd, outfile);
+    err = crfile_merge(&gd, outfile);
+    if (err > 0) {
+        perror(outfile);
+    }
+error_exit:
+    strings_free(&st);
+    gamedata_free(&gd);
+    return err;
 }
