@@ -1,7 +1,7 @@
 #include "CuTest.h"
 
 #undef STB_DEFINE
-#include "stb/stb.h"
+#include "stb/deprecated/stb.h"
 
 #define STB_DS_IMPLEMENTATION
 #include "stb/stb_ds.h"

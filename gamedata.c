@@ -1,6 +1,6 @@
 #include "gamedata.h"
 
-#include "stb/stb.h"
+#include "strings.h"
 #include "stb/stb_ds.h"
 
 #include <assert.h>

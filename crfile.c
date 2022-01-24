@@ -4,10 +4,9 @@
 
 #include "crfile.h"
 #include "gamedata.h"
+#include "strings.h"
 
 #include "crpat/crpat.h"
-
-#include "stb/stb.h"
 #include "stb/stb_ds.h"
 
 #include <errno.h>

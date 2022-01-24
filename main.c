@@ -2,7 +2,7 @@
 #include "crfile.h"
 
 #undef STB_DEFINE
-#include "stb/stb.h"
+#include "strings.h"
 
 #define STB_DS_IMPLEMENTATION
 #include "stb/stb_ds.h"

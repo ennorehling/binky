@@ -3,7 +3,7 @@ project (binky C)
 
 add_subdirectory(crpat)
 
-add_executable(binky main.c gamedata.c crfile.c crmerge.c)
+add_executable(binky main.c gamedata.c crfile.c crmerge.c sds/sds.c)
 target_link_libraries(binky crpat)
 
 add_executable(unittest unittest.c CuTest.c gamedata.test.c gamedata.c)
